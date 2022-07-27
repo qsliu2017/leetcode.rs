@@ -3,7 +3,60 @@ struct Solution;
 impl Solution {
     pub fn min_window(s: String, t: String) -> String {
         // Self::count_windows(s, t)
-        Self::double_pointer(s, t)
+        // Self::double_pointer(s, t)
+        Self::filter_slice_window(s, t)
+    }
+
+    fn filter_slice_window(s: String, t: String) -> String {
+        if s.len() < t.len() {
+            return String::from("");
+        }
+
+        let count = t
+            .chars()
+            .fold(std::collections::HashMap::new(), |mut cnt, c| {
+                let n = cnt.get(&c).unwrap_or(&0);
+                cnt.insert(c, *n + 1);
+                cnt
+            });
+        let filtered_s = s
+            .char_indices()
+            .filter(|(_, c)| count.get(c).is_some())
+            .collect::<Vec<_>>();
+        let (mut from, mut to) = (0, usize::MAX);
+        let mut from_ptr = 0;
+
+        let need = count.iter().count();
+        let mut have = 0;
+
+        let mut current_window_count = std::collections::HashMap::new();
+        for to_ptr in 0..filtered_s.len() {
+            let (last, c) = filtered_s[to_ptr];
+            let n = *current_window_count.get(&c).unwrap_or(&0) + 1;
+            if *count.get(&c).unwrap_or(&0) == n {
+                have += 1;
+            }
+            current_window_count.insert(c, n);
+            while have == need {
+                let (first, c) = filtered_s[from_ptr];
+                if last + 1 - first < to - from {
+                    from = first;
+                    to = last + 1;
+                }
+                let n = *current_window_count.get(&c).unwrap_or(&0) - 1;
+                current_window_count.insert(c, n);
+                if *count.get(&c).unwrap() > n {
+                    have -= 1;
+                }
+                from_ptr += 1;
+            }
+        }
+
+        if to < usize::MAX {
+            s[from..to].to_string()
+        } else {
+            String::from("")
+        }
     }
 
     fn double_pointer(s: String, t: String) -> String {
