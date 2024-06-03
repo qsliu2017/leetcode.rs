@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -e
+
+script_dir=$(dirname $0)
+
+lib="$script_dir/src/lib.rs"
+
+create() {
+local id=$1
+
+if ! [[ $id =~ ^[0-9]+$ ]]; then
+    echo "id must be a number"
+    exit 1
+fi
+
+local mod=$(printf "_%04d" "$id")
+local file="$script_dir/src/$mod.rs"
+
+if [ -e $file ]; then
+    echo "$file already exists"
+    exit 1
+fi
+
+cat <<EOF >$file
+struct Solution;
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test() {
+        let tt = [];
+        for (input, output) in tt {
+            assert_eq!(input, output);
+        }
+    }
+}
+EOF
+
+sort -o $lib.tmp $lib - <<EOF
+mod $mod;
+EOF
+
+mv $lib.tmp $lib
+
+echo "$file created"
+}
+
+create $1
