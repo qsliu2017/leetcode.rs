@@ -23,6 +23,7 @@ if [ -e $file ]; then
 fi
 
 cat <<EOF >$file
+#[allow(unused)]
 struct Solution;
 
 #[cfg(test)]
@@ -30,8 +31,9 @@ mod tests {
     #[test]
     fn test() {
         let tt = [];
-        for (input, output) in tt {
-            assert_eq!(input, output);
+        for (input, expected) in tt {
+            let output = super::Solution::
+            assert_eq!(expected, output);
         }
     }
 }
