@@ -16,14 +16,14 @@ impl Solution {
             index += 1;
             while index < n {
                 bitree[index] += 1;
-                index += index & (-(index as isize) as usize);
+                index += ((index ^ (index - 1)) + 1) >> 1;
             }
         };
         let get = |bitree: &Vec<i32>, mut index: usize| -> i32 {
             let mut s = 0;
             while index > 0 {
                 s += bitree[index];
-                index -= index & (-(index as isize) as usize);
+                index -= ((index ^ (index - 1)) + 1) >> 1;
             }
             s
         };
