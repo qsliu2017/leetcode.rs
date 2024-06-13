@@ -1,22 +1,43 @@
 #[allow(unused)]
 struct Solution;
-use std::collections::VecDeque;
+use std::collections::{BTreeSet, HashMap};
 impl Solution {
     pub fn count_smaller(nums: Vec<i32>) -> Vec<i32> {
+        let num_to_index = nums
+            .iter()
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .enumerate()
+            .map(|(i, &num)| (num, i + 1))
+            .collect::<HashMap<_, _>>();
         let n = nums.len();
         nums.into_iter()
+            .map(|num| num_to_index.get(&num).unwrap())
+            .enumerate()
             .rev()
             .fold(
-                (VecDeque::with_capacity(n), Vec::with_capacity(n)),
-                |(mut res, mut ordered), num| {
-                    let i = ordered.partition_point(|&x| x < num);
-                    ordered.insert(i, num);
-                    res.push_front(i as i32);
-                    (res, ordered)
+                (vec![0; n], vec![0; num_to_index.len() + 1]),
+                |(mut res, mut bitree), (i, &index)| {
+                    let mut find_index = index - 1;
+                    loop {
+                        res[i] += bitree[find_index];
+                        if find_index == 0 {
+                            break;
+                        }
+                        find_index -= (((find_index - 1) ^ find_index) + 1) >> 1;
+                    }
+                    let mut update_index = index;
+                    while update_index < num_to_index.len() {
+                        bitree[update_index] += 1;
+                        if update_index == 0 {
+                            break;
+                        }
+                        update_index += (((update_index - 1) ^ update_index) + 1) >> 1;
+                    }
+                    (res, bitree)
                 },
             )
             .0
-            .into()
     }
 }
 #[cfg(test)]
