@@ -4,66 +4,28 @@ use std::{
     cmp::Ordering,
     iter::{from_fn, zip},
 };
-type Node = (
-    Option<usize>, /* left */
-    Option<usize>, /* right */
-    usize,         /* # of left children */
-    usize,         /* # of right children */
-);
-fn construct_binary_tree(nums: &Vec<i32>, start: usize, end: usize, tree: &mut Vec<Node>) -> usize {
-    let root = nums[start..end]
-        .iter()
+fn construct_max_sequence(nums: &Vec<i32>, m: usize) -> Vec<i32> {
+    nums.iter()
         .enumerate()
-        .max_by(|(i, m), (j, n)| m.cmp(n).then(j.cmp(i)))
-        .unwrap()
-        .0
-        + start;
-    tree[root] = (
-        (start < root).then(|| construct_binary_tree(nums, start, root, tree)),
-        (root + 1 < end).then(|| construct_binary_tree(nums, root + 1, end, tree)),
-        root - start,
-        end - root - 1,
-    );
-    root
-}
-fn max_with_k_digits(
-    nums: &Vec<i32>,
-    tree: &Vec<Node>,
-    root: usize,
-    k: usize,
-    slot: &mut Vec<i32>,
-    base: usize,
-) {
-    if k == 0 {
-        return;
-    }
-    let (left, right, n_left, n_right) = tree[root];
-    let n_right = (k - 1).min(n_right);
-    let n_left = k - 1 - n_right;
-    slot[base + n_left] = nums[root];
-    if n_left > 0 {
-        max_with_k_digits(nums, tree, left.unwrap(), n_left, slot, base);
-    }
-    if n_right > 0 {
-        max_with_k_digits(nums, tree, right.unwrap(), n_right, slot, base + n_left + 1);
-    }
+        .fold(Vec::with_capacity(m), |mut stack, (i, &n)| {
+            while stack.len() + nums.len() - i > m && stack.last().is_some_and(|&top| top < n) {
+                stack.pop();
+            }
+            if stack.len() < m {
+                stack.push(n);
+            }
+            stack
+        })
 }
 impl Solution {
     pub fn max_number(nums1: Vec<i32>, nums2: Vec<i32>, k: i32) -> Vec<i32> {
         let k = k as usize;
-        let mut tree1 = vec![Node::default(); nums1.len()];
-        let root1 = construct_binary_tree(&nums1, 0, nums1.len(), &mut tree1);
-        let mut tree2 = vec![Node::default(); nums2.len()];
-        let root2 = construct_binary_tree(&nums2, 0, nums2.len(), &mut tree2);
         (k - nums2.len().min(k)..=nums1.len().min(k))
             .map(|m| {
-                let mut left = vec![0; m];
-                let mut right = vec![0; k - m];
-                dbg!(m, k - m);
-                max_with_k_digits(&nums1, &tree1, root1, m, &mut left, 0);
-                max_with_k_digits(&nums2, &tree2, root2, k - m, &mut right, 0);
+                let left = construct_max_sequence(&nums1, m);
+                let right = construct_max_sequence(&nums2, k - m);
                 let (mut i, mut j) = (0, 0);
-                from_fn(|| match (i < m, j < k - m) {
+                from_fn(move || match (i < m, j < k - m) {
                     (false, false) => None,
                     (false, true) => {
                         j += 1;
@@ -73,32 +35,43 @@ impl Solution {
                         i += 1;
                         Some(left[i - 1])
                     }
-                    (true, true) => (0..(m - i).min(k - m - j))
-                        .map(|k| left[i + k].cmp(&right[j + k]))
-                        .reduce(|acc, ord| acc.then(ord))
-                        .unwrap_or(Ordering::Equal)
-                        .then_with(|| (m - i).cmp(&(k - m - j)))
-                        .is_gt()
-                        .then(|| {
-                            i += 1;
-                            Some(left[i - 1])
-                        })
-                        .unwrap_or_else(|| {
-                            j += 1;
-                            Some(right[j - 1])
-                        }),
+                    (true, true) => {
+                        let (mut is_gt, mut is_lt) = (false, false);
+                        let is_eq = !(0..(m - i).min(k - m - j))
+                            .map(|k| left[i + k].cmp(&right[j + k]))
+                            .any(|ord| {
+                                is_gt = ord.is_gt();
+                                is_lt = ord.is_lt();
+                                is_gt || is_lt
+                            });
+                        (is_gt || (is_eq && m - i > k - m - j))
+                            .then(|| {
+                                i += 1;
+                                Some(left[i - 1])
+                            })
+                            .unwrap_or_else(|| {
+                                j += 1;
+                                Some(right[j - 1])
+                            })
+                    }
                 })
                 .into_iter()
                 .collect::<Vec<_>>()
             })
-            .inspect(|x| {
-                dbg!(x);
-            })
             .max_by(|a, b| {
-                zip(a.iter(), b.iter())
-                    .map(|(a, b)| a.cmp(b))
-                    .reduce(|acc, ord| acc.then(ord))
-                    .unwrap_or(Ordering::Equal)
+                let (mut is_gt, mut is_lt) = (false, false);
+                zip(a.iter(), b.iter()).map(|(a, b)| a.cmp(b)).any(|ord| {
+                    is_gt = ord.is_gt();
+                    is_lt = ord.is_lt();
+                    is_gt || is_lt
+                });
+                if is_gt {
+                    Ordering::Greater
+                } else if is_lt {
+                    Ordering::Less
+                } else {
+                    Ordering::Equal
+                }
             })
             .unwrap()
     }
