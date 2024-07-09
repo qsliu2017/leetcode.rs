@@ -1,9 +1,6 @@
 #[allow(unused)]
 struct Solution;
-use std::{
-    cmp::{max, Reverse},
-    collections::BinaryHeap,
-};
+use std::cmp::max;
 impl Solution {
     pub fn minimum_distance(points: Vec<Vec<i32>>) -> i32 {
         let points = points
@@ -11,56 +8,47 @@ impl Solution {
             .map(|point| (point[0], point[1]))
             .map(|(x, y)| (x + y, x - y))
             .collect::<Vec<_>>();
-        let mut x_max_heap = points.iter().map(|(x, _)| x).collect::<BinaryHeap<_>>();
-        let mut x_min_heap = points
-            .iter()
-            .map(|(x, _)| Reverse(x))
-            .collect::<BinaryHeap<_>>();
-        let mut y_max_heap = points.iter().map(|(_, y)| y).collect::<BinaryHeap<_>>();
-        let mut y_min_heap = points
-            .iter()
-            .map(|(_, y)| Reverse(y))
-            .collect::<BinaryHeap<_>>();
+        let (x_max, x_min, y_max, y_min) = points.iter().fold(
+            (
+                (&i32::MIN, &i32::MIN),
+                (&i32::MAX, &i32::MAX),
+                (&i32::MIN, &i32::MIN),
+                (&i32::MAX, &i32::MAX),
+            ),
+            |(x_max, x_min, y_max, y_min), (x, y)| {
+                (
+                    match (x > x_max.0, x_max.1 > x) {
+                        (true, _) => (x, x_max.0),
+                        (_, true) => x_max,
+                        _ => (x_max.0, x),
+                    },
+                    match (x < x_min.0, x_min.1 < x) {
+                        (true, _) => (x, x_min.0),
+                        (_, true) => x_min,
+                        _ => (x_min.0, x),
+                    },
+                    match (y > y_max.0, y_max.1 > y) {
+                        (true, _) => (y, y_max.0),
+                        (_, true) => y_max,
+                        _ => (y_max.0, y),
+                    },
+                    match (y < y_min.0, y_min.1 < y) {
+                        (true, _) => (y, y_min.0),
+                        (_, true) => y_min,
+                        _ => (y_min.0, y),
+                    },
+                )
+            },
+        );
         points
             .iter()
             .map(|(x, y)| {
-                let x_max = x_max_heap
-                    .peek()
-                    .and_then(|&m| (m != x).then_some(m))
-                    .unwrap_or_else(|| {
-                        x_max_heap.pop();
-                        let x_max = *x_max_heap.peek().unwrap();
-                        x_max_heap.push(x);
-                        x_max
-                    });
-                let x_min = x_min_heap
-                    .peek()
-                    .and_then(|&Reverse(m)| (m != x).then_some(m))
-                    .unwrap_or_else(|| {
-                        x_min_heap.pop();
-                        let Reverse(x_min) = *x_min_heap.peek().unwrap();
-                        x_min_heap.push(Reverse(x));
-                        x_min
-                    });
-                let y_max = y_max_heap
-                    .peek()
-                    .and_then(|&m| (m != y).then_some(m))
-                    .unwrap_or_else(|| {
-                        y_max_heap.pop();
-                        let y_max = *y_max_heap.peek().unwrap();
-                        y_max_heap.push(y);
-                        y_max
-                    });
-                let y_min = y_min_heap
-                    .peek()
-                    .and_then(|&Reverse(m)| (m != y).then_some(m))
-                    .unwrap_or_else(|| {
-                        y_min_heap.pop();
-                        let Reverse(y_min) = *y_min_heap.peek().unwrap();
-                        y_min_heap.push(Reverse(y));
-                        y_min
-                    });
-                max(x_max - x_min, y_max - y_min)
+                max(
+                    if x != x_max.0 { x_max.0 } else { x_max.1 }
+                        - if x != x_min.0 { x_min.0 } else { x_min.1 },
+                    if y != y_max.0 { y_max.0 } else { y_max.1 }
+                        - if y != y_min.0 { y_min.0 } else { y_min.1 },
+                )
             })
             .min()
             .unwrap()
