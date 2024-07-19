@@ -1,27 +1,22 @@
 #[allow(unused)]
 struct Solution;
-use std::{collections::BinaryHeap, iter::from_fn};
 impl Solution {
     pub fn minimum_levels(possible: Vec<i32>) -> i32 {
         let n = possible.len();
-        let (acc, mut heap) = possible.into_iter().enumerate().fold(
-            (0, BinaryHeap::with_capacity(n)),
-            |(acc, mut heap), (i, mode)| {
-                let acc = acc + if mode == 0 { -1 } else { 1 };
-                if heap
-                    .peek()
-                    .or(Some(&(i32::MIN, 0)))
-                    .is_some_and(|(max, _)| acc > *max)
-                {
-                    heap.push((acc, i));
-                }
-                (acc, heap)
-            },
-        );
-        from_fn(move || heap.pop())
-            .filter(|&(score, i)| 2 * score > acc && i + 1 < n)
-            .map(|(_, i)| i as i32 + 1)
-            .last()
+        let sum = possible
+            .iter()
+            .map(|&mode| if mode == 0 { -1 } else { 1 })
+            .sum::<i32>();
+        let mut acc = 0;
+        possible
+            .into_iter()
+            .take(n - 1)
+            .enumerate()
+            .filter_map(|(i, mode)| {
+                acc += if mode == 0 { -1 } else { 1 };
+                (acc * 2 > sum).then_some(i as i32 + 1)
+            })
+            .next()
             .unwrap_or(-1)
     }
 }
